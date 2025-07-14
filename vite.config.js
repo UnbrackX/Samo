@@ -1,20 +1,20 @@
-/* eslint-disable no-undef */
-import { defineConfig, loadEnv } from 'vite'
-import react from '@vitejs/plugin-react'
+// vite.config.mjs
+import { defineConfig, loadEnv } from "vite";
+import react from "@vitejs/plugin-react";
+import process from "process";
 
-// https://vite.dev/config/
-export default defineConfig(({mode}) => {
-
-  const env = loadEnv(mode, process.cwd())
+export default defineConfig(({ mode }) => {
+  const env = loadEnv(mode, process.cwd(), "");
+  console.log("Loaded env:", env);
 
   return {
-  plugins: [react()],
-  server: {
+    plugins: [react()],
+    server: {
       host: true,
       port: 3000,
       strictPort: true,
       proxy: {
-        '/api': env.VITE_API_URL,
+        "/api": env.VITE_API_URL,
         // '/api': {
         //   target: env.VITE_API_URL,
         //   changeOrigin: true,
@@ -22,6 +22,5 @@ export default defineConfig(({mode}) => {
         // },
       },
     },
-
-}
-})
+  };
+});

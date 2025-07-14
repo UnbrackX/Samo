@@ -26,7 +26,6 @@ const filterSlice = createSlice({
     },
   },
 });
-
 export const { setSearchName, setSearchTvend, setSearchDate, clearFilters } =
   filterSlice.actions;
 

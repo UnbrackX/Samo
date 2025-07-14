@@ -1,8 +1,7 @@
 import { Button } from "@mui/material";
-import React from "react";
 import { Icon } from "@iconify/react";
 
-const AddButton = ({ onClick }) => {
+const ComplectButton = ({ onClick }) => {
   return (
     <Button
       sx={{
@@ -21,7 +20,7 @@ const AddButton = ({ onClick }) => {
         fontFamily: '"Public Sans", sans-serif',
         minWidth: "64px",
         color: "#fff",
-        backgroundColor: "rgb(34, 197, 94)",
+        backgroundColor: "rgba(17, 199, 219, 1)",
         boxShadow: "none",
         outline: 0,
         border: 0,
@@ -39,9 +38,9 @@ const AddButton = ({ onClick }) => {
       startIcon={<Icon icon="ic:round-plus" />}
       onClick={onClick}
     >
-      Qo‘shish
+      Tasdiqlash
     </Button>
   );
 };
 
-export default AddButton;
+export default ComplectButton;

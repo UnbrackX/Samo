@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Stack,
   Typography,
@@ -12,10 +12,15 @@ import {
   IconButton,
   TextField,
   InputAdornment,
+  Tooltip,
+  CircularProgress,
 } from "@mui/material";
-import AddButton from "./AddButton";
-import { Icon } from "@iconify/react";
 import CloseIcon from "@mui/icons-material/Close";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import VisibilityIcon from "@mui/icons-material/Visibility";
+import VerifiedIcon from "@mui/icons-material/Verified";
+
 import { useDispatch, useSelector } from "react-redux";
 import {
   setSearchName,
@@ -23,48 +28,54 @@ import {
   setSearchDate,
 } from "./store/filterSlice";
 
+import { fetchDataList, deleteDataItem } from "./api/api";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import AddButton from "./AddButton";
+import { useNavigate } from "react-router-dom";
+
 const IndexPage = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const { searchName, searchTvend, searchDate } = useSelector(
     (state) => state.filters
   );
 
-  const items = [
-    {
-      id: 1,
-      name: "Mato",
-      Tvend: "6108310000",
-      Date: "2025/07/06",
-      status: "Faol",
-    },
-    {
-      id: 2,
-      name: "Ip",
-      Tvend: "6108310001",
-      Date: "2025/07/07",
-      status: "Faol",
-    },
-    {
-      id: 3,
-      name: "Kimyim",
-      Tvend: "6108310002",
-      Date: "2025/07/08",
-      status: "Faol",
-    },
-  ];
+  const [tableData, setTableData] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const filteredItems = items.filter((item) => {
-    const nameMatch = item.name
-      .toLowerCase()
-      .includes(searchName.toLowerCase());
-    const tvendMatch = item.Tvend.toLowerCase().includes(
-      searchTvend.toLowerCase()
-    );
-    const dateMatch = item.Date.toLowerCase().includes(
-      searchDate.toLowerCase()
-    );
-    return nameMatch && tvendMatch && dateMatch;
-  });
+  useEffect(() => {
+    setLoading(true);
+    fetchDataList()
+      .then((data) => setTableData(data))
+      .catch((err) => console.error("API xato:", err))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const filteredData = tableData.filter(
+    (item) =>
+      (item.doc_name || "").toLowerCase().includes(searchName.toLowerCase()) &&
+      (item.tnved || "").toLowerCase().includes(searchTvend.toLowerCase()) &&
+      (item.date || "").includes(searchDate)
+  );
+
+  const handleAction = async (action, doc) => {
+    if (action === "edit") {
+      navigate(`/edit/${doc.tnved}`);
+    } else if (action === "delete") {
+      try {
+        await deleteDataItem(doc.id);
+        setTableData(tableData.filter((item) => item.id !== doc.id));
+        toast.success("Hujjat o'chirildi!");
+      } catch (err) {
+        toast.error("O'chirishda xatolik! " + err.message);
+      }
+    } else if (action === "view") {
+      navigate(`/view/${doc.tnved}`);
+    } else if (action === "verified") {
+      toast.info("Tasdiqlash bajariladi!");
+    }
+  };
 
   return (
     <Stack direction="row" p={2}>
@@ -75,122 +86,160 @@ const IndexPage = () => {
           justifyContent="space-between"
           p={2}
         >
-          <Typography variant="h6">Mahsulotlar ro'yxati</Typography>
-          <AddButton />
+          <Typography variant="h6">Hujjatlar ro‘yxati</Typography>
+          <AddButton onClick={() => navigate("/add")} />
         </Stack>
 
-        <Grid item xs={12}>
-          <Table size="small">
-            <TableHead sx={{ background: "#F5F5F5" }}>
-              <TableRow>
-                <TableCell>№</TableCell>
-                <TableCell sx={{ width: "200px" }}>Hujjat raqami</TableCell>
-                <TableCell sx={{ width: "200px" }}>TNVED Kodi</TableCell>
-                <TableCell sx={{ width: "200px" }}>Sana</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Amallar</TableCell>
-              </TableRow>
-            </TableHead>
-
-            <TableBody>
-              <TableRow>
-                <TableCell></TableCell>
-                <TableCell>
-                  <TextField
-                    placeholder="Nomi bo'yicha qidirish"
-                    size="small"
-                    variant="outlined"
-                    fullWidth
-                    value={searchName}
-                    onChange={(e) => dispatch(setSearchName(e.target.value))}
-                    InputProps={{
-                      endAdornment: searchName && (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => dispatch(setSearchName(""))}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    placeholder="TNVED kodi bo'yicha qidirish"
-                    size="small"
-                    variant="outlined"
-                    fullWidth
-                    value={searchTvend}
-                    onChange={(e) => dispatch(setSearchTvend(e.target.value))}
-                    InputProps={{
-                      endAdornment: searchTvend && (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => dispatch(setSearchTvend(""))}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </TableCell>
-                <TableCell>
-                  <TextField
-                    placeholder="Sanasi bo'yicha qidirish"
-                    size="small"
-                    variant="outlined"
-                    fullWidth
-                    value={searchDate}
-                    onChange={(e) => dispatch(setSearchDate(e.target.value))}
-                    InputProps={{
-                      endAdornment: searchDate && (
-                        <InputAdornment position="end">
-                          <IconButton
-                            size="small"
-                            onClick={() => dispatch(setSearchDate(""))}
-                          >
-                            <CloseIcon fontSize="small" />
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
-                  />
-                </TableCell>
-                <TableCell></TableCell>
-                <TableCell></TableCell>
-              </TableRow>
-            </TableBody>
-
-            <TableBody>
-              {filteredItems.map((item, index) => (
-                <TableRow key={item.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{item.name}</TableCell>
-                  <TableCell>{item.Tvend}</TableCell>
-                  <TableCell>{item.Date}</TableCell>
-                  <TableCell>{item.status}</TableCell>
-                  <TableCell>
-                    <IconButton color="primary">
-                      <Icon icon="material-symbols:edit" width={18} />
-                    </IconButton>
-                    <IconButton color="warning">
-                      <Icon icon="ph:eye" width={18} />
-                    </IconButton>
-                    <IconButton color="error">
-                      <Icon icon="ph:trash" width={18} />
-                    </IconButton>
-                  </TableCell>
+        <Grid>
+          {loading ? (
+            <Stack alignItems="center" p={4}>
+              <CircularProgress />
+            </Stack>
+          ) : (
+            <Table size="small">
+              <TableHead sx={{ background: "#F5F5F5" }}>
+                <TableRow>
+                  <TableCell>№</TableCell>
+                  <TableCell>Hujjat raqami</TableCell>
+                  <TableCell>TNVED Kodi</TableCell>
+                  <TableCell>Sana</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell>Amallar</TableCell>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHead>
+              <TableBody>
+                <TableRow>
+                  <TableCell></TableCell>
+                  <TableCell>
+                    <TextField
+                      placeholder="Hujjat raqami bo‘yicha qidirish"
+                      size="small"
+                      fullWidth
+                      value={searchName}
+                      onChange={(e) => dispatch(setSearchName(e.target.value))}
+                      InputProps={{
+                        endAdornment: searchName && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => dispatch(setSearchName(""))}
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      placeholder="TNVED kodi bo‘yicha qidirish"
+                      size="small"
+                      fullWidth
+                      value={searchTvend}
+                      onChange={(e) => dispatch(setSearchTvend(e.target.value))}
+                      InputProps={{
+                        endAdornment: searchTvend && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => dispatch(setSearchTvend(""))}
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <TextField
+                      placeholder="Sanasi bo‘yicha qidirish"
+                      size="small"
+                      fullWidth
+                      value={searchDate}
+                      onChange={(e) => dispatch(setSearchDate(e.target.value))}
+                      InputProps={{
+                        endAdornment: searchDate && (
+                          <InputAdornment position="end">
+                            <IconButton
+                              size="small"
+                              onClick={() => dispatch(setSearchDate(""))}
+                            >
+                              <CloseIcon fontSize="small" />
+                            </IconButton>
+                          </InputAdornment>
+                        ),
+                      }}
+                    />
+                  </TableCell>
+                  <TableCell></TableCell>
+                  <TableCell></TableCell>
+                </TableRow>
+
+                {filteredData.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      Ma’lumot yo‘q
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredData.map((item, index) => (
+                    <TableRow key={item.id}>
+                      <TableCell>{index + 1}</TableCell>
+                      <TableCell>{item.doc_name}</TableCell>
+                      <TableCell>{item.tnved}</TableCell>
+                      <TableCell>{item.date}</TableCell>
+                      <TableCell>{item.status}</TableCell>
+                      <TableCell>
+                        <Tooltip title="Ko‘rish">
+                          <IconButton
+                            onClick={() => handleAction("view", item)}
+                          >
+                            <VisibilityIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+
+                        {item.status === "Yangi" && (
+                          <>
+                            <Tooltip title="Tahrirlash">
+                              <IconButton
+                                onClick={() => handleAction("edit", item)}
+                              >
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="O‘chirish">
+                              <IconButton
+                                onClick={() => handleAction("delete", item)}
+                              >
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </>
+                        )}
+
+                        {["Tasdiqlangan", "Jarayonda"].includes(
+                          item.status
+                        ) && (
+                          <Tooltip title="Tasdiqlash">
+                            <IconButton
+                              onClick={() => handleAction("verified", item)}
+                            >
+                              <VerifiedIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          )}
         </Grid>
       </Paper>
+      <ToastContainer position="top-right" autoClose={2000} />
     </Stack>
   );
 };

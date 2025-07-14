@@ -1,68 +1,95 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   Grid,
-  Stack,
-  TextField,
-  Button,
-  Typography,
-  Select,
-  MenuItem,
   FormControl,
   InputLabel,
-  Table,
-  TableBody,
+  Select,
+  MenuItem,
   TableContainer,
+  Table,
   TableHead,
   TableRow,
   TableCell,
+  TableBody,
   Paper,
+  Button,
 } from "@mui/material";
-import InputAdornment from "@mui/material/InputAdornment";
-import IconButton from "@mui/material/IconButton";
-import CloseIcon from "@mui/icons-material/Close";
-import SearchIcon from "@mui/icons-material/Search";
-import { Formik, Field, FieldArray, Form } from "formik";
-import axios from "axios";
+import { Formik, Form, FieldArray } from "formik";
 import { ToastContainer, toast } from "react-toastify";
+import { useNavigate, useParams } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
-import { data } from "react-router-dom";
+import SaveButton from "./SaveButton";
+import BackButton from "./BackButton";
+import InputPage from "./input";
+import {
+  fetchDsadadList,
+  getDocumentByTnved,
+  saveOrUpdateDocument,
+} from "./api/api";
+import AddButton from "./AddButton";
+import ComplectButton from "./CoplectButton";
 
-const initialRow = {
-  search: "",
-  category: "",
-  brand: "",
-  model: "",
-  productType: "",
-  target: "",
-  size: "",
-  sizeType: "",
-  color: "",
-  manualColor: "",
-  technical: "",
-  modelType: "",
-  showFilters: false,
-  inherited: false,
-};
+export default function FormikTable({ isView = false }) {
+  const [apiData, setApiData] = useState(null);
+  const [initialRow, setInitialRow] = useState(null);
+  const navigate = useNavigate();
+  const { id: tnved } = useParams();
 
-export default function FormikTable() {
-  const [apiData, setApiData] = React.useState(null);
-
-  React.useEffect(() => {
-    axios
-      .get(
-        "/api/v2/znaks/api-actions?type=GET_DATA_VIA_TNVED&tnved=6108310000"
-      )
-      .then((res) => {
-        setApiData(res.data[0]);
-        console.log(data);
-      })
-      .catch((err) => console.error("API xato:", err));
+  useEffect(() => {
+    fetchDsadadList()
+      .then((res) => setApiData(res[0]))
+      .catch((err) => console.error("API error:", err));
   }, []);
+
+  useEffect(() => {
+    const loadData = async () => {
+      let row = {
+        search: tnved || "",
+        category: "",
+        brand: "",
+        productType: "",
+        target: "",
+        size: "",
+        sizeType: "",
+        color: "",
+        manualColor: "",
+        technical: "",
+        modelType: "",
+      };
+
+      if (tnved) {
+        try {
+          const existing = await getDocumentByTnved(tnved);
+          if (existing.length > 0) {
+            const doc = existing[0];
+            row = {
+              search: doc.tnved || "",
+              category: doc.category || "",
+              brand: doc.brand || "",
+              productType: doc.productType || "",
+              target: doc.target || "",
+              size: doc.size || "",
+              sizeType: doc.sizeType || "",
+              color: doc.color || "",
+              manualColor: "",
+              technical: doc.technical || "",
+              modelType: doc.modelType || "",
+            };
+          }
+        } catch (err) {
+          console.error("TNVED olishda xato:", err);
+        }
+      }
+
+      setInitialRow(row);
+    };
+
+    loadData();
+  }, [tnved]);
 
   const getOptions = (key) => {
     if (!apiData) return [];
-
     switch (key) {
       case "category":
         return apiData.data.category.map((c) => c.cat_name);
@@ -70,8 +97,6 @@ export default function FormikTable() {
         return apiData.data.color.filter((c) => c !== "Boshqa");
       case "technical":
         return apiData.data.technical_regulations;
-      case "model":
-        return apiData.data.model_list.map((m) => m.name);
       case "modelType":
         return apiData.data.model_var_list.map((m) => m.name);
       case "size":
@@ -87,313 +112,299 @@ export default function FormikTable() {
     }
   };
 
-  if (!apiData) return <Typography>Yuklanmoqda...</Typography>;
-
   return (
-    <Formik
-      initialValues={{ rows: [initialRow] }}
-      onSubmit={(values) => {
-        console.log("Yakuniy:", values);
-      }}
-    >
-      {({ values, setFieldValue }) => {
-        const completedRows = values.rows.filter(
-          (row) =>
-            row.search.trim() &&
-            (row.color || row.manualColor.trim()) &&
-            row.category &&
-            row.brand &&
-            row.productType.trim() &&
-            row.target &&
-            row.modelType &&
-            row.technical &&
-            row.sizeType &&
-            row.size
-        );
+    initialRow && (
+      <Formik
+        initialValues={{ rows: [initialRow] }}
+        enableReinitialize
+        onSubmit={async (values) => {
+          const promises = values.rows.map(async (row) => {
+            if (
+              !row.search.trim() ||
+              !(row.color || row.manualColor.trim()) ||
+              !row.category ||
+              !row.brand ||
+              !row.productType.trim() ||
+              !row.target ||
+              !row.modelType ||
+              !row.technical ||
+              !row.sizeType ||
+              !row.size
+            ) {
+              throw new Error("Barcha qatorlarni to‘liq to‘ldiring!");
+            }
 
-        return (
+            return saveOrUpdateDocument({
+              tnved: row.search,
+              productType: row.productType,
+              category: row.category,
+              color: row.manualColor.trim() ? row.manualColor : row.color,
+              brand: row.brand,
+              target: row.target,
+              modelType: row.modelType,
+              technical: row.technical,
+              sizeType: row.sizeType,
+              size: row.size,
+            });
+          });
+
+          try {
+            await Promise.all(promises);
+            toast.success("Hamma qatorlar saqlandi!");
+            navigate("/");
+          } catch (err) {
+            toast.error("Xatolik: " + err.message);
+          }
+        }}
+      >
+        {({ values, setFieldValue }) => (
           <Form>
-            <FieldArray name="rows">
-              {({ push, remove }) => (
+            <Card
+              sx={{
+                maxWidth: 1200,
+                mx: "auto",
+                my: 4,
+                p: 2,
+                display: "flex",
+                justifyContent: "space-between",
+              }}
+            >
+              <BackButton onClick={() => navigate("/")} />
+
+              {!isView && (
+                <Grid display={"flex"} gap={"10px"}>
+                  <SaveButton
+                    onClick={() =>
+                      document.querySelector("form").requestSubmit()
+                    }
+                  />
+                  <ComplectButton />
+                </Grid>
+              )}
+            </Card>
+
+            <FieldArray
+              name="rows"
+              render={(arrayHelpers) => (
                 <>
                   {values.rows.map((row, index) => (
                     <Card
                       key={index}
-                      sx={{ mb: 2, p: 2, maxWidth: 1200, mx: "auto", mt: 4 }}
+                      sx={{
+                        maxWidth: 1200,
+                        mx: "auto",
+                        mb: 4,
+                        p: 2,
+                      }}
                     >
-                      <Typography variant="h6" mb={1} fontWeight="bold">
-                        TNVED Qidirish
-                      </Typography>
-
                       <Grid container spacing={2} alignItems="center">
-                        <Grid item display="flex" gap={2} alignItems="center">
-                          {!row.inherited && (
-                            <Field name={`rows[${index}].search`}>
-                              {({ field, form }) => (
-                                <TextField
-                                  {...field}
-                                  label="TNVED"
-                                  size="small"
-                                  sx={{
-                                    width: 200,
-                                    margin: "0",
-                                    WebkitAppearance: "none",
-                                    MozAppearance: "textfield",
-                                    "& input[type=number]::-webkit-outer-spin-button":
-                                      {
-                                        WebkitAppearance: "none",
-                                        margin: 0,
-                                      },
-                                    "& input[type=number]::-webkit-inner-spin-button":
-                                      {
-                                        WebkitAppearance: "none",
-                                        margin: 0,
-                                      },
-                                  }}
-                                  type="number"
-                                  onChange={(e) => {
-                                    const val = e.target.value;
-                                    form.setFieldValue(
-                                      `rows[${index}].search`,
-                                      val
-                                    );
-                                    form.setFieldValue(
-                                      `rows[${index}].showFilters`,
-                                      val.trim() !== ""
-                                    );
-                                  }}
-                                  InputProps={{
-                                    endAdornment: (
-                                      <InputAdornment position="end">
-                                        {field.value ? (
-                                          <IconButton
-                                            size="small"
-                                            onClick={() => {
-                                              form.setFieldValue(
-                                                `rows[${index}].search`,
-                                                ""
-                                              );
-                                              form.setFieldValue(
-                                                `rows[${index}].showFilters`,
-                                                false
-                                              );
-                                            }}
-                                          >
-                                            <CloseIcon fontSize="small" />
-                                          </IconButton>
-                                        ) : (
-                                          <SearchIcon fontSize="small" />
-                                        )}
-                                      </InputAdornment>
-                                    ),
-                                  }}
-                                />
-                              )}
-                            </Field>
-                          )}
+                        <Grid item>
+                          <InputPage
+                            id={`tnved-${index}`}
+                            label="TNVED"
+                            type="number"
+                            value={row.search}
+                            disabled={true}
+                            onChange={(e) =>
+                              setFieldValue(
+                                `rows[${index}].search`,
+                                e.target.value.trim()
+                              )
+                            }
+                          />
                         </Grid>
-                      </Grid>
 
-                      {row.showFilters && (
-                        <>
-                          <Grid container spacing={2} sx={{ mt: 2 }}>
-                            <Grid item xs="auto">
-                              <TextField
-                                size="small"
-                                label="Tovar nomi"
-                                value={row.productType}
+                        <Grid item>
+                          <InputPage
+                            id={`productType-${index}`}
+                            label="Tovar nomi"
+                            value={row.productType}
+                            disabled={isView}
+                            onChange={(e) =>
+                              setFieldValue(
+                                `rows[${index}].productType`,
+                                e.target.value
+                              )
+                            }
+                          />
+                        </Grid>
+
+                        {[
+                          ["category", "Kategoriyasi"],
+                          ["brand", "Brend"],
+                          ["target", "Target"],
+                          ["modelType", "Tip modeli"],
+                          ["technical", "Texnik reglament"],
+                          ["sizeType", "Tip razmeri"],
+                          ["size", "Razmer"],
+                        ].map(([key, label]) => (
+                          <Grid key={key} item>
+                            <FormControl size="small" sx={{ width: 200 }}>
+                              <InputLabel>{label}</InputLabel>
+                              <Select
+                                label={label}
+                                value={row[key]}
+                                disabled={isView}
                                 onChange={(e) =>
                                   setFieldValue(
-                                    `rows[${index}].productType`,
+                                    `rows[${index}].${key}`,
                                     e.target.value
                                   )
                                 }
-                                sx={{ width: 200 }}
-                              />
-                            </Grid>
-                            {[
-                              ["category", "Kategoriyasi"],
-                              ["brand", "Brend"],
-                              ["target", "Target"],
-                              ["modelType", "Tip modeli"],
-                              ["technical", "Texnik reglament"],
-                              ["sizeType", "Tip razmeri"],
-                              ["size", "Razmer"],
-                            ].map(([key, label]) => (
-                              <Grid item xs="auto" key={key}>
-                                <FormControl size="small" sx={{ width: 200 }}>
-                                  <InputLabel>{label}</InputLabel>
-                                  <Select
-                                    label={label}
-                                    value={row[key]}
-                                    onChange={(e) => {
-                                      setFieldValue(
-                                        `rows[${index}].${key}`,
-                                        e.target.value
-                                      );
-                                    }}
-                                  >
-                                    {getOptions(key).map((o) => (
-                                      <MenuItem key={o} value={o}>
-                                        {o}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              </Grid>
-                            ))}
+                              >
+                                {getOptions(key).map((o) => (
+                                  <MenuItem key={o} value={o}>
+                                    {o}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          </Grid>
+                        ))}
 
-                            <Grid item xs="auto">
-                              {!row.manualColor.trim() && (
-                                <FormControl size="small" sx={{ width: 200 }}>
-                                  <InputLabel>Rang</InputLabel>
-                                  <Select
-                                    label="Rang"
-                                    value={row.color}
-                                    onChange={(e) => {
-                                      setFieldValue(
-                                        `rows[${index}].color`,
-                                        e.target.value
-                                      );
-                                      if (e.target.value) {
-                                        setFieldValue(
-                                          `rows[${index}].manualColor`,
-                                          ""
-                                        );
-                                      }
-                                    }}
-                                  >
-                                    {getOptions("color").map((o) => (
-                                      <MenuItem key={o} value={o}>
-                                        {o}
-                                      </MenuItem>
-                                    ))}
-                                  </Select>
-                                </FormControl>
-                              )}
-                            </Grid>
-
-                            <Grid item xs="auto">
-                              {!row.color && (
-                                <TextField
-                                  size="small"
-                                  label="Rangni qo‘lda kiriting"
-                                  value={row.manualColor}
-                                  onChange={(e) => {
+                        <Grid item>
+                          {!row.manualColor && (
+                            <FormControl size="small" sx={{ width: 200 }}>
+                              <InputLabel>Rang</InputLabel>
+                              <Select
+                                label="Rang"
+                                value={row.color}
+                                disabled={isView}
+                                onChange={(e) => {
+                                  setFieldValue(
+                                    `rows[${index}].color`,
+                                    e.target.value
+                                  );
+                                  if (e.target.value) {
                                     setFieldValue(
                                       `rows[${index}].manualColor`,
-                                      e.target.value
+                                      ""
                                     );
-                                    if (e.target.value.trim()) {
-                                      setFieldValue(`rows[${index}].color`, "");
-                                    }
-                                  }}
-                                  sx={{ width: 200 }}
-                                />
-                              )}
-                            </Grid>
-                          </Grid>
-
-                          <Stack direction="row" spacing={2} sx={{ mt: 2 }}>
-                            <Button
-                              color="success"
-                              variant="outlined"
-                              onClick={() => {
-                                if (!row.color && !row.manualColor.trim()) {
-                                  toast.error(
-                                    "Rangni tanlang yoki qo‘lda kiriting!"
-                                  );
-                                  return;
-                                }
-                                push({
-                                  ...initialRow,
-                                  search: row.search,
-                                  showFilters: true,
-                                  inherited: true,
-                                });
-                              }}
-                            >
-                              Qo‘shish
-                            </Button>
-
-                            {values.rows.length > 1 && row.inherited && (
-                              <Button
-                                onClick={() => {
-                                  remove(index);
-                                  toast.success("O‘chirildi!");
+                                  }
                                 }}
-                                color="error"
-                                variant="outlined"
                               >
-                                O‘chirish
-                              </Button>
-                            )}
-                          </Stack>
-                        </>
-                      )}
+                                {getOptions("color").map((o) => (
+                                  <MenuItem key={o} value={o}>
+                                    {o}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                            </FormControl>
+                          )}
+                        </Grid>
+
+                        <Grid item>
+                          {!row.color && (
+                            <InputPage
+                              id={`manualColor-${index}`}
+                              label="Qo‘lda Rang"
+                              value={row.manualColor}
+                              disabled={isView}
+                              onChange={(e) => {
+                                setFieldValue(
+                                  `rows[${index}].manualColor`,
+                                  e.target.value
+                                );
+                                if (e.target.value.trim()) {
+                                  setFieldValue(`rows[${index}].color`, "");
+                                }
+                              }}
+                            />
+                          )}
+                        </Grid>
+
+                        {!isView && index !== 0 && (
+                          <Grid item>
+                            <Button
+                              variant="outlined"
+                              color="error"
+                              onClick={() => arrayHelpers.remove(index)}
+                            >
+                              O‘chirish
+                            </Button>
+                          </Grid>
+                        )}
+                      </Grid>
                     </Card>
                   ))}
+
+                  {!isView && (
+                    <Card
+                      sx={{
+                        maxWidth: 1200,
+                        mx: "auto",
+                        mb: 4,
+                        p: 2,
+                        display: "flex",
+                        justifyContent: "flex-start",
+                      }}
+                    >
+                      <AddButton
+                        onClick={() =>
+                          arrayHelpers.push({
+                            search: values.rows[0].search,
+                            category: "",
+                            brand: "",
+                            productType: "",
+                            target: "",
+                            size: "",
+                            sizeType: "",
+                            color: "",
+                            manualColor: "",
+                            technical: "",
+                            modelType: "",
+                          })
+                        }
+                      />
+                    </Card>
+                  )}
+
                   <Card sx={{ maxWidth: 1230, mx: "auto", mb: 4 }}>
                     <TableContainer component={Paper}>
                       <Table>
-                        <TableHead sx={{ bgcolor: "#e0e0e0" }}>
+                        <TableHead>
                           <TableRow>
+                            <TableCell>TNVED</TableCell>
                             <TableCell>Tovar nomi</TableCell>
-                            <TableCell>Kategoriyasi</TableCell>
-                            <TableCell>Rangi</TableCell>
-                            <TableCell>Brendi</TableCell>
+                            <TableCell>Kategoriya</TableCell>
+                            <TableCell>Brend</TableCell>
                             <TableCell>Target</TableCell>
                             <TableCell>Tip modeli</TableCell>
                             <TableCell>Texnik reglament</TableCell>
                             <TableCell>Tip razmeri</TableCell>
                             <TableCell>Razmer</TableCell>
+                            <TableCell>Rang</TableCell>
                           </TableRow>
                         </TableHead>
                         <TableBody>
-                          {completedRows.length > 0 ? (
-                            completedRows.map((r, i) => (
-                              <TableRow key={i}>
-                                <TableCell
-                                  sx={{ width: 70, wordBreak: "break-word" }}
-                                >
-                                  {r.productType}
-                                </TableCell>
-                                <TableCell>{r.category}</TableCell>
-                                <TableCell>
-                                  {r.manualColor.trim()
-                                    ? r.manualColor
-                                    : r.color}
-                                </TableCell>
-                                <TableCell>{r.brand}</TableCell>
-                                <TableCell>{r.target}</TableCell>
-                                <TableCell>{r.modelType}</TableCell>
-                                <TableCell
-                                  sx={{ width: 200, wordBreak: "break-word" }}
-                                >
-                                  {r.technical}
-                                </TableCell>
-                                <TableCell>{r.sizeType}</TableCell>
-                                <TableCell>{r.size}</TableCell>
-                              </TableRow>
-                            ))
-                          ) : (
-                            <TableRow>
-                              <TableCell colSpan={10} align="center">
-                                Hozircha ma‘lumot yo‘q
+                          {values.rows.map((row, idx) => (
+                            <TableRow key={idx}>
+                              <TableCell>{row.search || "-"}</TableCell>
+                              <TableCell>{row.productType || "-"}</TableCell>
+                              <TableCell>{row.category || "-"}</TableCell>
+                              <TableCell>{row.brand || "-"}</TableCell>
+                              <TableCell>{row.target || "-"}</TableCell>
+                              <TableCell>{row.modelType || "-"}</TableCell>
+                              <TableCell>{row.technical || "-"}</TableCell>
+                              <TableCell>{row.sizeType || "-"}</TableCell>
+                              <TableCell>{row.size || "-"}</TableCell>
+                              <TableCell>
+                                {row.color || row.manualColor || "-"}
                               </TableCell>
                             </TableRow>
-                          )}
+                          ))}
                         </TableBody>
                       </Table>
                     </TableContainer>
                   </Card>
                 </>
               )}
-            </FieldArray>
+            />
+
             <ToastContainer position="top-right" autoClose={2000} />
           </Form>
-        );
-      }}
-    </Formik>
+        )}
+      </Formik>
+    )
   );
 }
