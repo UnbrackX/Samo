@@ -61,7 +61,7 @@ const IndexPage = () => {
 
   const handleAction = async (action, doc) => {
     if (action === "edit") {
-      navigate(`/edit/${doc.tnved}`);
+      navigate(`/uz/base/znak/chestny-znak/edit/${doc.tnved}`);
     } else if (action === "delete") {
       try {
         await deleteDataItem(doc.id);
@@ -71,7 +71,7 @@ const IndexPage = () => {
         toast.error("O'chirishda xatolik! " + err.message);
       }
     } else if (action === "view") {
-      navigate(`/view/${doc.tnved}`);
+      navigate(`/uz/base/znak/chestny-znak/view/${doc.tnved}`);
     } else if (action === "verified") {
       toast.info("Tasdiqlash bajariladi!");
     }
@@ -87,7 +87,9 @@ const IndexPage = () => {
           p={2}
         >
           <Typography variant="h6">Hujjatlar ro‘yxati</Typography>
-          <AddButton onClick={() => navigate("/add")} />
+          <AddButton
+            onClick={() => navigate("/uz/base/znak/chestny-znak/add")}
+          />
         </Stack>
 
         <Grid>

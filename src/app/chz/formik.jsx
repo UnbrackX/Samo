@@ -17,18 +17,22 @@ import {
 } from "@mui/material";
 import { Formik, Form, FieldArray } from "formik";
 import { ToastContainer, toast } from "react-toastify";
-import { useNavigate, useParams } from "react-router-dom";
+import { replace, useNavigate, useParams } from "react-router-dom";
 import "react-toastify/dist/ReactToastify.css";
+
+// Custom components
 import SaveButton from "./SaveButton";
 import BackButton from "./BackButton";
 import InputPage from "./input";
+import AddButton from "./AddButton";
+import ComplectButton from "./CoplectButton";
+
+// API functions
 import {
   fetchDsadadList,
   getDocumentByTnved,
   saveOrUpdateDocument,
 } from "./api/api";
-import AddButton from "./AddButton";
-import ComplectButton from "./CoplectButton";
 
 export default function FormikTable({ isView = false }) {
   const [apiData, setApiData] = useState(null);
@@ -151,7 +155,7 @@ export default function FormikTable({ isView = false }) {
           try {
             await Promise.all(promises);
             toast.success("Hamma qatorlar saqlandi!");
-            navigate("/");
+            navigate("uz/base/znak/chestny-znak");
           } catch (err) {
             toast.error("Xatolik: " + err.message);
           }
@@ -159,6 +163,7 @@ export default function FormikTable({ isView = false }) {
       >
         {({ values, setFieldValue }) => (
           <Form>
+            {/* Top actions */}
             <Card
               sx={{
                 maxWidth: 1200,
@@ -169,10 +174,12 @@ export default function FormikTable({ isView = false }) {
                 justifyContent: "space-between",
               }}
             >
-              <BackButton onClick={() => navigate("/")} />
+              <BackButton
+                onClick={() => navigate("/uz/base/znak/chestny-znak", replace)}
+              />
 
               {!isView && (
-                <Grid display={"flex"} gap={"10px"}>
+                <Grid display="flex" gap="10px">
                   <SaveButton
                     onClick={() =>
                       document.querySelector("form").requestSubmit()
@@ -328,6 +335,7 @@ export default function FormikTable({ isView = false }) {
                     </Card>
                   ))}
 
+                  {/* Add Row */}
                   {!isView && (
                     <Card
                       sx={{
@@ -359,6 +367,7 @@ export default function FormikTable({ isView = false }) {
                     </Card>
                   )}
 
+                  {/* Summary Table */}
                   <Card sx={{ maxWidth: 1230, mx: "auto", mb: 4 }}>
                     <TableContainer component={Paper}>
                       <Table>

@@ -48,7 +48,7 @@ export default function AddPage() {
       console.log("Yaratilgan:", res.data);
 
       toast.success("Yangi hujjat qo‘shildi!");
-      navigate("/");
+      navigate("uz/base/znak/chestny-znak", { replace: true });
     } catch (error) {
       console.error("POST xatolik:", error);
       toast.error("API ga yuborishda xatolik!");
@@ -96,8 +96,7 @@ export default function AddPage() {
         <Divider sx={{ my: 4 }} />
 
         <Box sx={{ display: "flex", justifyContent: "space-between" }}>
-          <BackButton onClick={() => navigate("/")} />
-
+          <BackButton onClick={() => navigate("/uz/base/znak/chestny-znak")} />
           <SaveButton onClick={handleSave} />
         </Box>
       </Card>
