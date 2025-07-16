@@ -1,5 +1,4 @@
 import { Button } from "@mui/material";
-import React from "react";
 import { Icon } from "@iconify/react";
 
 const AddButton = ({ onClick }) => {

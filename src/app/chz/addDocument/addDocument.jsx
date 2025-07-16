@@ -32,8 +32,8 @@ export default function AddPage() {
     }
 
     const payload = {
-      doc_name: docId,
-      tnved: tnved,
+      doc_name: String(docId),
+      tnved: String(tnved),
       date: dayjs(date).format("YYYY-MM-DD"),
       status: "Yangi",
     };

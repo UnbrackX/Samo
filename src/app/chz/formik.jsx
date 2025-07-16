@@ -155,7 +155,7 @@ export default function FormikTable({ isView = false }) {
           try {
             await Promise.all(promises);
             toast.success("Hamma qatorlar saqlandi!");
-            navigate("uz/base/znak/chestny-znak");
+            navigate("uz/base/znak/chestny-znak", replace);
           } catch (err) {
             toast.error("Xatolik: " + err.message);
           }
@@ -163,7 +163,6 @@ export default function FormikTable({ isView = false }) {
       >
         {({ values, setFieldValue }) => (
           <Form>
-            {/* Top actions */}
             <Card
               sx={{
                 maxWidth: 1200,
@@ -175,7 +174,9 @@ export default function FormikTable({ isView = false }) {
               }}
             >
               <BackButton
-                onClick={() => navigate("/uz/base/znak/chestny-znak", replace)}
+                onClick={() =>
+                  navigate("/uz/base/znak/chestny-znak", { replace: true })
+                }
               />
 
               {!isView && (
@@ -367,7 +368,6 @@ export default function FormikTable({ isView = false }) {
                     </Card>
                   )}
 
-                  {/* Summary Table */}
                   <Card sx={{ maxWidth: 1230, mx: "auto", mb: 4 }}>
                     <TableContainer component={Paper}>
                       <Table>

@@ -33,6 +33,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import AddButton from "./AddButton";
 import { useNavigate } from "react-router-dom";
+import { replace } from "formik";
 
 const IndexPage = () => {
   const dispatch = useDispatch();
@@ -51,17 +52,22 @@ const IndexPage = () => {
       .catch((err) => console.error("API xato:", err))
       .finally(() => setLoading(false));
   }, []);
-
   const filteredData = tableData.filter(
     (item) =>
-      (item.doc_name || "").toLowerCase().includes(searchName.toLowerCase()) &&
-      (item.tnved || "").toLowerCase().includes(searchTvend.toLowerCase()) &&
-      (item.date || "").includes(searchDate)
+      String(item.doc_name || "")
+        .toLowerCase()
+        .includes(searchName.toLowerCase()) &&
+      String(item.tnved || "")
+        .toLowerCase()
+        .includes(searchTvend.toLowerCase()) &&
+      String(item.date || "").includes(searchDate)
   );
 
   const handleAction = async (action, doc) => {
     if (action === "edit") {
-      navigate(`/uz/base/znak/chestny-znak/edit/${doc.tnved}`);
+      navigate(`/uz/base/znak/chestny-znak/edit/${doc.tnved}`, {
+        replace: true,
+      });
     } else if (action === "delete") {
       try {
         await deleteDataItem(doc.id);
@@ -71,7 +77,9 @@ const IndexPage = () => {
         toast.error("O'chirishda xatolik! " + err.message);
       }
     } else if (action === "view") {
-      navigate(`/uz/base/znak/chestny-znak/view/${doc.tnved}`);
+      navigate(`/uz/base/znak/chestny-znak/view/${doc.tnved}`, {
+        replace: true,
+      });
     } else if (action === "verified") {
       toast.info("Tasdiqlash bajariladi!");
     }
@@ -88,7 +96,7 @@ const IndexPage = () => {
         >
           <Typography variant="h6">Hujjatlar ro‘yxati</Typography>
           <AddButton
-            onClick={() => navigate("/uz/base/znak/chestny-znak/add")}
+            onClick={() => navigate("/uz/base/znak/chestny-znak/add", replace)}
           />
         </Stack>
 
